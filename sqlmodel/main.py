@@ -758,6 +758,22 @@ class SQLModel(BaseModel, metaclass=SQLModelMetaclass, registry=default_registry
             update=update,
         )
 
+    @classmethod
+    def model_validate_json(
+        cls: Type[_TSQLModel],
+        json_data: str | bytes | bytearray,
+        *,
+        strict: bool | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> _TSQLModel:
+        obj = super().model_validate_json(
+            json_data=json_data, strict=strict, context=context
+        )
+        # Without this, SQLModel.model_validate_json() doesn't recursively parse fields of type pydantic.ModelBase.
+        # This has to do with (how we handle) the issue explained in a comment to __init__.
+        # Since we already go to great lengths to fix this for model_validate, lets just use that (at some perf cost).
+        return cls.model_validate(obj=obj, strict=strict, context=context)
+
     def model_dump(
         self,
         *,
